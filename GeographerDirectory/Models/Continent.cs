@@ -1,26 +1,15 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
+using System.ComponentModel;
 
 namespace GeographerDirectory.Models
 {
-    /// <summary> Клас материка. </summary>
     public class Continent : GeographicObject
     {
-        /// <summary> Список країн, розташованих на материку. </summary>
+        [Browsable(false)] // МАГІЯ: Ховаємо цю страшну колекцію з таблиці!
         public List<Country> Countries { get; set; } = new List<Country>();
 
-        /// <summary> Порожній конструктор для серіалізації. </summary>
         public Continent() { }
 
-        /// <summary> Ініціалізує об'єкт материка. </summary>
-        public Continent(string name) : base(name, 0)
-        {
-        }
-
-        /// <summary> Динамічно обчислює загальне населення материка. </summary>
-        public int GetTotalPopulation()
-        {
-            return Countries.Sum(country => country.Population);
-        }
+        public Continent(string name) : base(name, 0) { }
     }
 }

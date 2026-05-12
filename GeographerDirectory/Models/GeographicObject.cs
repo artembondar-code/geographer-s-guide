@@ -1,18 +1,17 @@
-﻿namespace GeographerDirectory.Models
+﻿using System.ComponentModel; // Обов'язкова бібліотека для красивих назв!
+
+namespace GeographerDirectory.Models
 {
-    /// <summary> Базовий клас для всіх географічних об'єктів. </summary>
     public abstract class GeographicObject
     {
-        /// <summary> Назва об'єкта. </summary>
+        [DisplayName("1. Назва")] // Цифри допоможуть зберегти порядок у таблиці
         public string Name { get; set; }
 
-        /// <summary> Чисельність населення. </summary>
+        [DisplayName("2. Населення (осіб)")]
         public int Population { get; set; }
 
-        /// <summary> Порожній конструктор для серіалізації. </summary>
         public GeographicObject() { }
 
-        /// <summary> Ініціалізує базові властивості об'єкта. </summary>
         public GeographicObject(string name, int population)
         {
             Name = name;

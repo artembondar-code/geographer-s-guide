@@ -1,13 +1,20 @@
 ﻿using System.Collections.Generic;
+using System.ComponentModel;
 
 namespace GeographerDirectory.Models
 {
     public class Country : GeographicObject
     {
-        public double Area { get; set; } // Площа
-        public string GovernmentForm { get; set; } // Форма державного правління
-        public string Capital { get; set; } // Столиця
+        [DisplayName("3. Площа (кв. км)")]
+        public double Area { get; set; }
 
+        [DisplayName("4. Форма правління")]
+        public string GovernmentForm { get; set; }
+
+        [DisplayName("5. Столиця")]
+        public string Capital { get; set; }
+
+        [Browsable(false)] // Ховаємо список регіонів
         public List<Region> Regions { get; set; } = new List<Region>();
 
         public Country() { }
