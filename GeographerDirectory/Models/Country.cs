@@ -2,30 +2,22 @@
 
 namespace GeographerDirectory.Models
 {
-    /// <summary> Клас країни. </summary>
     public class Country : GeographicObject
     {
-        /// <summary> Площа території. </summary>
-        public double Area { get; set; }
+        public double Area { get; set; } // Площа
+        public string GovernmentForm { get; set; } // Форма державного правління
+        public string Capital { get; set; } // Столиця
 
-        /// <summary> Форма державного правління. </summary>
-        public string GovernmentForm { get; set; }
-
-        /// <summary> Столиця країни. </summary>
-        public City Capital { get; set; }
-
-        /// <summary> Список регіонів країни. </summary>
         public List<Region> Regions { get; set; } = new List<Region>();
 
-        /// <summary> Порожній конструктор для серіалізації. </summary>
         public Country() { }
 
-        /// <summary> Ініціалізує об'єкт країни. </summary>
-        public Country(string name, int population, double area, string governmentForm)
+        public Country(string name, int population, double area, string governmentForm, string capital)
             : base(name, population)
         {
             Area = area;
             GovernmentForm = governmentForm;
+            Capital = capital;
         }
     }
 }

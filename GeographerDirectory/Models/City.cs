@@ -1,23 +1,15 @@
 ﻿namespace GeographerDirectory.Models
 {
-    /// <summary> Клас міста з географічними координатами. </summary>
     public class City : GeographicObject
     {
-        /// <summary> Географічна широта. </summary>
-        public double Latitude { get; set; }
+        public string Coordinates { get; set; } // Географічні координати (наприклад: "50.00, 36.23")
 
-        /// <summary> Географічна довгота. </summary>
-        public double Longitude { get; set; }
-
-        /// <summary> Порожній конструктор для серіалізації. </summary>
         public City() { }
 
-        /// <summary> Ініціалізує об'єкт міста. </summary>
-        public City(string name, int population, double latitude, double longitude)
+        public City(string name, int population, string coordinates)
             : base(name, population)
         {
-            Latitude = latitude;
-            Longitude = longitude;
+            Coordinates = coordinates;
         }
     }
 }
