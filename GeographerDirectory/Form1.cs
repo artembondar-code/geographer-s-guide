@@ -31,21 +31,19 @@ namespace GeographerDirectory
             btnDelete.Click += BtnDelete_Click;
             btnShowOnMap.Click += BtnShowOnMap_Click;
 
-            // --- НОВИЙ КОД ДЛЯ КНОПОК ЗБЕРЕГТИ/ВІДКРИТИ ---
             btnSave.Click += BtnSave_Click;
             btnLoad.Click += BtnLoad_Click;
 
             treeView.AfterSelect += (s, e) => ShowDetails(e.Node.Tag);
         }
 
-        // ВІКНО ЗБЕРЕЖЕННЯ
         private void BtnSave_Click(object sender, EventArgs e)
         {
             using (SaveFileDialog sfd = new SaveFileDialog())
             {
                 sfd.Filter = "JSON файли (*.json)|*.json|Всі файли (*.*)|*.*";
                 sfd.Title = "Зберегти довідник як...";
-                sfd.FileName = "Мій_Довідник.json"; // Назва за замовчуванням
+                sfd.FileName = "Мій_Довідник.json";
 
                 if (sfd.ShowDialog() == DialogResult.OK)
                 {
@@ -55,7 +53,6 @@ namespace GeographerDirectory
             }
         }
 
-        // ВІКНО ВІДКРИТТЯ
         private void BtnLoad_Click(object sender, EventArgs e)
         {
             using (OpenFileDialog ofd = new OpenFileDialog())
@@ -92,7 +89,8 @@ namespace GeographerDirectory
             if (obj is GeographicObject geo)
             {
                 AddField("Назва:", geo.Name, v => geo.Name = v);
-                AddField("Населення:", geo.Population.ToString(), v => { if (int.TryParse(v, out int res)) geo.Population = res; });
+                // Використовуємо long.TryParse для великих чисел
+                AddField("Населення:", geo.Population.ToString(), v => { if (long.TryParse(v, out long res)) geo.Population = res; });
             }
 
             if (obj is Continent continent)
@@ -104,12 +102,18 @@ namespace GeographerDirectory
                     Size = new Size(280, 40),
                     FlatStyle = FlatStyle.Flat,
                     BackColor = Color.LightGreen,
-                    Font = new Font("Segoe UI", 9, FontStyle.Bold)
+                    Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                    Cursor = Cursors.Hand
                 };
                 btnCalc.Click += (s, e) => {
                     long totalPopulation = 0;
-                    foreach (var c in continent.Countries) totalPopulation += c.Population;
-                    MessageBox.Show($"Загальне населення материка {continent.Name}: {totalPopulation} осіб.", "Статистика");
+                    foreach (var c in continent.Countries)
+                    {
+                        totalPopulation += c.Population;
+                    }
+
+                    continent.Population = totalPopulation; // Оновлюємо дані в об'єкті
+                    ShowDetails(continent); // Одразу оновлюємо поля на панелі
                 };
                 detailsPanel.Controls.Add(btnCalc);
             }
@@ -181,7 +185,7 @@ namespace GeographerDirectory
             }
             treeView.ExpandAll();
             treeView.EndUpdate();
-            detailsPanel.Controls.Clear(); // Очищаємо панель при оновленні дерева
+            detailsPanel.Controls.Clear();
         }
 
         private void InitializeCustomUI()
@@ -196,13 +200,40 @@ namespace GeographerDirectory
             mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));
 
+            // ПОКРАЩЕНА ЛІВА ПАНЕЛЬ З ПОШУКОМ
             treeView = new TreeView { Dock = DockStyle.Fill, Font = new Font("Segoe UI", 11), BorderStyle = BorderStyle.None };
+
+            TextBox txtSearch = new TextBox { Dock = DockStyle.Top, Font = new Font("Segoe UI", 11), PlaceholderText = "🔍 Пошук за назвою..." };
+            txtSearch.TextChanged += (s, e) => {
+                string searchText = txtSearch.Text.ToLower();
+
+                void SearchNodes(TreeNodeCollection nodes)
+                {
+                    foreach (TreeNode node in nodes)
+                    {
+                        bool match = node.Text.ToLower().Contains(searchText);
+                        node.BackColor = (match && !string.IsNullOrEmpty(searchText)) ? Color.Yellow : Color.White;
+                        if (match && !string.IsNullOrEmpty(searchText)) node.EnsureVisible();
+                        SearchNodes(node.Nodes);
+                    }
+                }
+
+                treeView.BeginUpdate();
+                SearchNodes(treeView.Nodes);
+                treeView.EndUpdate();
+            };
+
+            Panel leftPanel = new Panel { Dock = DockStyle.Fill };
+            leftPanel.Controls.Add(txtSearch);
+            leftPanel.Controls.Add(treeView);
+            treeView.BringToFront(); // Щоб дерево було під пошуком
+
             detailsPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, Padding = new Padding(20) };
 
             TableLayoutPanel buttonPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 6, RowCount = 1, Padding = new Padding(10), BackColor = Color.FromArgb(240, 244, 248) };
             for (int i = 0; i < 6; i++) buttonPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 16.6F));
 
-            void StyleBtn(Button b, Color bg, Color fg) { b.FlatStyle = FlatStyle.Flat; b.FlatAppearance.BorderSize = 0; b.BackColor = bg; b.ForeColor = fg; b.Font = new Font("Segoe UI", 10, FontStyle.Bold); b.Dock = DockStyle.Fill; b.Margin = new Padding(5); }
+            void StyleBtn(Button b, Color bg, Color fg) { b.FlatStyle = FlatStyle.Flat; b.FlatAppearance.BorderSize = 0; b.BackColor = bg; b.ForeColor = fg; b.Font = new Font("Segoe UI", 10, FontStyle.Bold); b.Dock = DockStyle.Fill; b.Margin = new Padding(5); b.Cursor = Cursors.Hand; }
 
             btnAddContinent = new Button { Text = "Материк" }; StyleBtn(btnAddContinent, Color.LightGray, Color.Black);
             btnAddChild = new Button { Text = "Додати" }; StyleBtn(btnAddChild, Color.LightGray, Color.Black);
@@ -214,7 +245,7 @@ namespace GeographerDirectory
             buttonPanel.Controls.Add(btnAddContinent, 0, 0); buttonPanel.Controls.Add(btnAddChild, 1, 0); buttonPanel.Controls.Add(btnDelete, 2, 0);
             buttonPanel.Controls.Add(btnShowOnMap, 3, 0); buttonPanel.Controls.Add(btnSave, 4, 0); buttonPanel.Controls.Add(btnLoad, 5, 0);
 
-            mainLayout.Controls.Add(treeView, 0, 0);
+            mainLayout.Controls.Add(leftPanel, 0, 0);
             mainLayout.Controls.Add(detailsPanel, 1, 0);
             mainLayout.Controls.Add(buttonPanel, 0, 1);
             mainLayout.SetColumnSpan(buttonPanel, 2);

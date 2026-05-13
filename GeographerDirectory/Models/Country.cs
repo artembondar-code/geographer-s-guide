@@ -19,7 +19,7 @@ namespace GeographerDirectory.Models
 
         public Country() { }
 
-        public Country(string name, int population, double area, string governmentForm, string capital)
+        public Country(string name, long population, double area, string governmentForm, string capital)
             : base(name, population)
         {
             Area = area;

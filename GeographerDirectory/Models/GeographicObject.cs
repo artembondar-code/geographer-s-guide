@@ -8,11 +8,11 @@ namespace GeographerDirectory.Models
         public string Name { get; set; }
 
         [DisplayName("2. Населення (осіб)")]
-        public int Population { get; set; }
+        public long Population { get; set; }
 
         public GeographicObject() { }
 
-        public GeographicObject(string name, int population)
+        public GeographicObject(string name, long population)
         {
             Name = name;
             Population = population;

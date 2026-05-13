@@ -16,7 +16,7 @@ namespace GeographerDirectory.Models
 
         public Region() { }
 
-        public Region(string name, int population, string type, string capital)
+        public Region(string name, long population, string type, string capital)
             : base(name, population)
         {
             Type = type;

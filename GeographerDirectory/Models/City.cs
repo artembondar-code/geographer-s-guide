@@ -6,7 +6,7 @@
 
         public City() { }
 
-        public City(string name, int population, string coordinates)
+        public City(string name, long population, string coordinates)
             : base(name, population)
         {
             Coordinates = coordinates;
