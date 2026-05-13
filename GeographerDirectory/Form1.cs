@@ -89,7 +89,6 @@ namespace GeographerDirectory
             if (obj is GeographicObject geo)
             {
                 AddField("Назва:", geo.Name, v => geo.Name = v);
-                // Використовуємо long.TryParse для великих чисел
                 AddField("Населення:", geo.Population.ToString(), v => { if (long.TryParse(v, out long res)) geo.Population = res; });
             }
 
@@ -112,8 +111,8 @@ namespace GeographerDirectory
                         totalPopulation += c.Population;
                     }
 
-                    continent.Population = totalPopulation; // Оновлюємо дані в об'єкті
-                    ShowDetails(continent); // Одразу оновлюємо поля на панелі
+                    continent.Population = totalPopulation;
+                    ShowDetails(continent);
                 };
                 detailsPanel.Controls.Add(btnCalc);
             }
@@ -200,10 +199,10 @@ namespace GeographerDirectory
             mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));
 
-            // ПОКРАЩЕНА ЛІВА ПАНЕЛЬ З ПОШУКОМ
             treeView = new TreeView { Dock = DockStyle.Fill, Font = new Font("Segoe UI", 11), BorderStyle = BorderStyle.None };
 
-            TextBox txtSearch = new TextBox { Dock = DockStyle.Top, Font = new Font("Segoe UI", 11), PlaceholderText = "🔍 Пошук за назвою..." };
+            // Оновлено текст підказки
+            TextBox txtSearch = new TextBox { Dock = DockStyle.Top, Font = new Font("Segoe UI", 11), PlaceholderText = "🔍 Пошук (назва, столиця, населення, координати)..." };
             txtSearch.TextChanged += (s, e) => {
                 string searchText = txtSearch.Text.ToLower();
 
@@ -211,9 +210,35 @@ namespace GeographerDirectory
                 {
                     foreach (TreeNode node in nodes)
                     {
-                        bool match = node.Text.ToLower().Contains(searchText);
-                        node.BackColor = (match && !string.IsNullOrEmpty(searchText)) ? Color.Yellow : Color.White;
-                        if (match && !string.IsNullOrEmpty(searchText)) node.EnsureVisible();
+                        bool match = false;
+
+                        // Якщо пошук не порожній, перевіряємо всі поля
+                        if (!string.IsNullOrWhiteSpace(searchText))
+                        {
+                            if (node.Tag is GeographicObject geo)
+                            {
+                                // Збираємо всі доступні дані об'єкта в один рядок
+                                string searchData = $"{geo.Name} {geo.Population} ";
+
+                                if (geo is Country c) searchData += $"{c.Area} {c.Capital} {c.GovernmentForm}";
+                                else if (geo is Region r) searchData += $"{r.Type} {r.Capital}";
+                                else if (geo is City city) searchData += $"{city.Coordinates}";
+
+                                // Шукаємо збіг у цьому загальному рядку
+                                match = searchData.ToLower().Contains(searchText);
+                            }
+                            else
+                            {
+                                // Запасний варіант, якщо Tag порожній (хоча такого не має бути)
+                                match = node.Text.ToLower().Contains(searchText);
+                            }
+                        }
+
+                        // Підсвічуємо
+                        node.BackColor = match ? Color.Yellow : Color.White;
+                        if (match) node.EnsureVisible();
+
+                        // Шукаємо далі в дочірніх елементах
                         SearchNodes(node.Nodes);
                     }
                 }
@@ -226,7 +251,7 @@ namespace GeographerDirectory
             Panel leftPanel = new Panel { Dock = DockStyle.Fill };
             leftPanel.Controls.Add(txtSearch);
             leftPanel.Controls.Add(treeView);
-            treeView.BringToFront(); // Щоб дерево було під пошуком
+            treeView.BringToFront();
 
             detailsPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, Padding = new Padding(20) };
 
