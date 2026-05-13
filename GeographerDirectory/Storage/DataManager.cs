@@ -1,36 +1,49 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using GeographerDirectory.Models;
 
 namespace GeographerDirectory.Storage
 {
-    /// <summary> Клас для управління збереженням та завантаженням даних. </summary>
     public class DataManager
     {
-        // Файл автоматично створиться поруч із виконуваним файлом програми
-        private readonly string _filePath = "geodata.json";
-
-        /// <summary> Зберігає список материків у файл. </summary>
-        public void SaveData(List<Continent> continents)
+        // Метод збереження тепер приймає шлях до файлу (filePath)
+        public void SaveData(List<Continent> continents, string filePath)
         {
-            // WriteIndented робить файл JSON красиво відформатованим
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            string jsonString = JsonSerializer.Serialize(continents, options);
-            File.WriteAllText(_filePath, jsonString);
+            try
+            {
+                var options = new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    IncludeFields = true
+                };
+                string jsonString = JsonSerializer.Serialize(continents, options);
+                File.WriteAllText(filePath, jsonString);
+            }
+            catch (Exception ex)
+            {
+                System.Windows.Forms.MessageBox.Show("Помилка при збереженні: " + ex.Message);
+            }
         }
 
-        /// <summary> Завантажує список материків з файлу. </summary>
-        public List<Continent> LoadData()
+        // Метод завантаження тепер теж приймає шлях до файлу (filePath)
+        public List<Continent> LoadData(string filePath)
         {
-            // Якщо файлу ще немає (перший запуск), повертаємо порожній список
-            if (!File.Exists(_filePath))
+            try
             {
+                if (!File.Exists(filePath)) return new List<Continent>();
+
+                string jsonString = File.ReadAllText(filePath);
+                var data = JsonSerializer.Deserialize<List<Continent>>(jsonString);
+
+                return data ?? new List<Continent>();
+            }
+            catch (Exception ex)
+            {
+                System.Windows.Forms.MessageBox.Show("Помилка при завантаженні: " + ex.Message);
                 return new List<Continent>();
             }
-
-            string jsonString = File.ReadAllText(_filePath);
-            return JsonSerializer.Deserialize<List<Continent>>(jsonString) ?? new List<Continent>();
         }
     }
 }

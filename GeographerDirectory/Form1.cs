@@ -12,7 +12,7 @@ namespace GeographerDirectory
     public partial class Form1 : Form
     {
         private TreeView treeView;
-        private Panel detailsPanel; // Наша нова панель замість PropertyGrid
+        private Panel detailsPanel;
         private Button btnAddContinent, btnAddChild, btnDelete, btnSave, btnLoad, btnShowOnMap;
 
         private DataManager dataManager;
@@ -29,72 +29,93 @@ namespace GeographerDirectory
             btnAddContinent.Click += (s, e) => { continents.Add(new Continent("Новий Материк")); UpdateTreeView(); };
             btnAddChild.Click += BtnAddChild_Click;
             btnDelete.Click += BtnDelete_Click;
-            btnSave.Click += (s, e) => { dataManager.SaveData(continents); MessageBox.Show("Збережено!"); };
-            btnLoad.Click += (s, e) => { continents = dataManager.LoadData(); UpdateTreeView(); };
             btnShowOnMap.Click += BtnShowOnMap_Click;
 
-            treeView.AfterSelect += (s, e) => ShowDetails(e.Node.Tag);
+            // --- НОВИЙ КОД ДЛЯ КНОПОК ЗБЕРЕГТИ/ВІДКРИТИ ---
+            btnSave.Click += BtnSave_Click;
+            btnLoad.Click += BtnLoad_Click;
 
-            this.Load += (s, e) => { continents = dataManager.LoadData(); UpdateTreeView(); };
+            treeView.AfterSelect += (s, e) => ShowDetails(e.Node.Tag);
         }
 
-        // --- НОВА ЛОГІКА ВІДОБРАЖЕННЯ (ЗАМІСТЬ PROPERTYGRID) ---
+        // ВІКНО ЗБЕРЕЖЕННЯ
+        private void BtnSave_Click(object sender, EventArgs e)
+        {
+            using (SaveFileDialog sfd = new SaveFileDialog())
+            {
+                sfd.Filter = "JSON файли (*.json)|*.json|Всі файли (*.*)|*.*";
+                sfd.Title = "Зберегти довідник як...";
+                sfd.FileName = "Мій_Довідник.json"; // Назва за замовчуванням
+
+                if (sfd.ShowDialog() == DialogResult.OK)
+                {
+                    dataManager.SaveData(continents, sfd.FileName);
+                    MessageBox.Show("Дані успішно збережено!", "Успіх", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+        }
+
+        // ВІКНО ВІДКРИТТЯ
+        private void BtnLoad_Click(object sender, EventArgs e)
+        {
+            using (OpenFileDialog ofd = new OpenFileDialog())
+            {
+                ofd.Filter = "JSON файли (*.json)|*.json|Всі файли (*.*)|*.*";
+                ofd.Title = "Відкрити довідник";
+
+                if (ofd.ShowDialog() == DialogResult.OK)
+                {
+                    continents = dataManager.LoadData(ofd.FileName);
+                    UpdateTreeView();
+                }
+            }
+        }
+
         private void ShowDetails(object obj)
         {
             detailsPanel.Controls.Clear();
             if (obj == null) return;
 
             int y = 20;
-
-            // Внутрішня функція для створення полів
             void AddField(string labelText, string value, Action<string> onUpdate)
             {
-                Label lbl = new Label
-                {
-                    Text = labelText,
-                    Location = new Point(20, y),
-                    AutoSize = true,
-                    Font = new Font("Segoe UI", 10, FontStyle.Bold)
-                };
-
-                TextBox txt = new TextBox
-                {
-                    Text = value,
-                    Location = new Point(20, y + 20),
-                    Width = 280,
-                    Font = new Font("Segoe UI", 10)
-                };
-
-                // При зміні тексту викликаємо оновлення даних
+                Label lbl = new Label { Text = labelText, Location = new Point(20, y), AutoSize = true, Font = new Font("Segoe UI", 10, FontStyle.Bold) };
+                TextBox txt = new TextBox { Text = value, Location = new Point(20, y + 20), Width = 280, Font = new Font("Segoe UI", 10) };
                 txt.TextChanged += (s, e) => {
                     onUpdate(txt.Text);
-                    // Якщо міняємо назву — оновлюємо текст у дереві зліва
-                    if (labelText.Contains("Назва") && treeView.SelectedNode != null)
-                        treeView.SelectedNode.Text = txt.Text;
+                    if (labelText.Contains("Назва") && treeView.SelectedNode != null) treeView.SelectedNode.Text = txt.Text;
                 };
-
-                detailsPanel.Controls.Add(lbl);
-                detailsPanel.Controls.Add(txt);
-                y += 65; // Відступ до наступного поля
+                detailsPanel.Controls.Add(lbl); detailsPanel.Controls.Add(txt);
+                y += 65;
             }
 
-            // 1. Спільні поля для всіх (Назва та Населення)
             if (obj is GeographicObject geo)
             {
                 AddField("Назва:", geo.Name, v => geo.Name = v);
-
-                // ВИПРАВЛЕНО: Використовуємо if замість тернарного оператора
-                AddField("Населення:", geo.Population.ToString(), v => {
-                    if (int.TryParse(v, out int res)) geo.Population = res;
-                });
+                AddField("Населення:", geo.Population.ToString(), v => { if (int.TryParse(v, out int res)) geo.Population = res; });
             }
 
-            // 2. Специфічні поля залежно від типу
-            if (obj is Country c)
+            if (obj is Continent continent)
             {
-                AddField("Площа (кв. км):", c.Area.ToString(), v => {
-                    if (double.TryParse(v, out double res)) c.Area = res;
-                });
+                Button btnCalc = new Button
+                {
+                    Text = "📊 Підрахувати населення материка",
+                    Location = new Point(20, y),
+                    Size = new Size(280, 40),
+                    FlatStyle = FlatStyle.Flat,
+                    BackColor = Color.LightGreen,
+                    Font = new Font("Segoe UI", 9, FontStyle.Bold)
+                };
+                btnCalc.Click += (s, e) => {
+                    long totalPopulation = 0;
+                    foreach (var c in continent.Countries) totalPopulation += c.Population;
+                    MessageBox.Show($"Загальне населення материка {continent.Name}: {totalPopulation} осіб.", "Статистика");
+                };
+                detailsPanel.Controls.Add(btnCalc);
+            }
+            else if (obj is Country c)
+            {
+                AddField("Площа (кв. км):", c.Area.ToString(), v => { if (double.TryParse(v, out double res)) c.Area = res; });
                 AddField("Столиця:", c.Capital, v => c.Capital = v);
                 AddField("Форма правління:", c.GovernmentForm, v => c.GovernmentForm = v);
             }
@@ -109,13 +130,12 @@ namespace GeographerDirectory
             }
         }
 
-        // --- ЛОГІКА КНОПОК ТА ДЕРЕВА ---
         private void BtnShowOnMap_Click(object sender, EventArgs e)
         {
             if (treeView.SelectedNode?.Tag is City city && !string.IsNullOrEmpty(city.Coordinates))
             {
                 string url = $"http://google.com/maps/place/{city.Coordinates.Replace(" ", "")}";
-                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+                try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); } catch { }
             }
             else MessageBox.Show("Оберіть місто з координатами!");
         }
@@ -161,6 +181,7 @@ namespace GeographerDirectory
             }
             treeView.ExpandAll();
             treeView.EndUpdate();
+            detailsPanel.Controls.Clear(); // Очищаємо панель при оновленні дерева
         }
 
         private void InitializeCustomUI()
