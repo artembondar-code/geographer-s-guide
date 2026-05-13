@@ -18,6 +18,14 @@ namespace GeographerDirectory
         private DataManager dataManager;
         private List<Continent> continents;
 
+        // --- РАДИКАЛЬНА ТЕМНА ТЕМА (DARK MODE) ---
+        private Color bgPrimary = Color.FromArgb(30, 30, 46);     // Глибокий темний для панелі зліва
+        private Color bgSecondary = Color.FromArgb(40, 42, 54);   // Трохи світліший темний для основної панелі
+        private Color inputBg = Color.FromArgb(50, 52, 70);       // Фон для полів вводу тексту
+        private Color textLight = Color.FromArgb(248, 248, 242);  // Основний білий текст
+        private Color textMuted = Color.FromArgb(160, 160, 175);  // Сіруватий текст для підписів
+        private Color accentBlue = Color.FromArgb(59, 130, 246);  // Яскравий синій для виділення
+
         public Form1()
         {
             InitializeComponent();
@@ -30,7 +38,6 @@ namespace GeographerDirectory
             btnAddChild.Click += BtnAddChild_Click;
             btnDelete.Click += BtnDelete_Click;
             btnShowOnMap.Click += BtnShowOnMap_Click;
-
             btnSave.Click += BtnSave_Click;
             btnLoad.Click += BtnLoad_Click;
 
@@ -74,16 +81,45 @@ namespace GeographerDirectory
             if (obj == null) return;
 
             int y = 20;
+
+            if (obj is GeographicObject g)
+            {
+                Label titleLbl = new Label
+                {
+                    Text = g.Name,
+                    Location = new Point(20, y),
+                    AutoSize = true,
+                    Font = new Font("Segoe UI", 20, FontStyle.Bold),
+                    ForeColor = textLight // Білий заголовок
+                };
+                detailsPanel.Controls.Add(titleLbl);
+
+                // Роздільна лінія
+                Panel separator = new Panel { BackColor = Color.FromArgb(68, 71, 90), Location = new Point(20, y + 40), Size = new Size(350, 2) };
+                detailsPanel.Controls.Add(separator);
+
+                y += 65;
+            }
+
             void AddField(string labelText, string value, Action<string> onUpdate)
             {
-                Label lbl = new Label { Text = labelText, Location = new Point(20, y), AutoSize = true, Font = new Font("Segoe UI", 10, FontStyle.Bold) };
-                TextBox txt = new TextBox { Text = value, Location = new Point(20, y + 20), Width = 280, Font = new Font("Segoe UI", 10) };
+                Label lbl = new Label { Text = labelText, Location = new Point(20, y), AutoSize = true, Font = new Font("Segoe UI", 10, FontStyle.Bold), ForeColor = textMuted };
+                TextBox txt = new TextBox
+                {
+                    Text = value,
+                    Location = new Point(20, y + 25),
+                    Width = 350,
+                    Font = new Font("Segoe UI", 12),
+                    BorderStyle = BorderStyle.FixedSingle,
+                    BackColor = inputBg,      // Темний фон поля
+                    ForeColor = textLight     // Білий текст у полі
+                };
                 txt.TextChanged += (s, e) => {
                     onUpdate(txt.Text);
                     if (labelText.Contains("Назва") && treeView.SelectedNode != null) treeView.SelectedNode.Text = txt.Text;
                 };
                 detailsPanel.Controls.Add(lbl); detailsPanel.Controls.Add(txt);
-                y += 65;
+                y += 70;
             }
 
             if (obj is GeographicObject geo)
@@ -96,21 +132,22 @@ namespace GeographerDirectory
             {
                 Button btnCalc = new Button
                 {
-                    Text = "📊 Підрахувати населення материка",
-                    Location = new Point(20, y),
-                    Size = new Size(280, 40),
+                    Text = "📊 Підрахувати населення",
+                    Location = new Point(20, y + 10),
+                    Size = new Size(350, 45),
                     FlatStyle = FlatStyle.Flat,
-                    BackColor = Color.LightGreen,
-                    Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                    BackColor = Color.FromArgb(16, 185, 129), // Смарагдовий зелений
+                    ForeColor = Color.White,
+                    Font = new Font("Segoe UI", 11, FontStyle.Bold),
                     Cursor = Cursors.Hand
                 };
+                btnCalc.FlatAppearance.BorderSize = 0;
+                btnCalc.MouseEnter += (s, e) => btnCalc.BackColor = Color.FromArgb(5, 150, 105);
+                btnCalc.MouseLeave += (s, e) => btnCalc.BackColor = Color.FromArgb(16, 185, 129);
+
                 btnCalc.Click += (s, e) => {
                     long totalPopulation = 0;
-                    foreach (var c in continent.Countries)
-                    {
-                        totalPopulation += c.Population;
-                    }
-
+                    foreach (var c in continent.Countries) totalPopulation += c.Population;
                     continent.Population = totalPopulation;
                     ShowDetails(continent);
                 };
@@ -140,7 +177,7 @@ namespace GeographerDirectory
                 string url = $"http://google.com/maps/place/{city.Coordinates.Replace(" ", "")}";
                 try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); } catch { }
             }
-            else MessageBox.Show("Оберіть місто з координатами!");
+            else MessageBox.Show("Оберіть місто з координатами!", "Увага", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
 
         private void BtnAddChild_Click(object sender, EventArgs e)
@@ -189,86 +226,102 @@ namespace GeographerDirectory
 
         private void InitializeCustomUI()
         {
-            this.Text = "Довідник географа 2.0";
-            this.Size = new Size(1100, 650);
+            this.Text = "Довідник географа 2.0 (Dark Edition)";
+            this.Size = new Size(1150, 700);
             this.StartPosition = FormStartPosition.CenterScreen;
+            this.BackColor = bgSecondary;
 
             TableLayoutPanel mainLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 2 };
             mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 350));
             mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 85));
 
-            treeView = new TreeView { Dock = DockStyle.Fill, Font = new Font("Segoe UI", 11), BorderStyle = BorderStyle.None };
+            // Дерево: темний фон, білий текст
+            treeView = new TreeView { Dock = DockStyle.Fill, Font = new Font("Segoe UI", 12), BorderStyle = BorderStyle.None, BackColor = bgPrimary, ForeColor = textLight, ItemHeight = 32 };
 
-            // Оновлено текст підказки
-            TextBox txtSearch = new TextBox { Dock = DockStyle.Top, Font = new Font("Segoe UI", 11), PlaceholderText = "🔍 Пошук (назва, столиця, населення, координати)..." };
+            // Пошук: темний фон
+            TextBox txtSearch = new TextBox { Dock = DockStyle.Top, Font = new Font("Segoe UI", 12), PlaceholderText = "🔍 Пошук (назва, координати)...", BorderStyle = BorderStyle.FixedSingle, BackColor = inputBg, ForeColor = textLight };
             txtSearch.TextChanged += (s, e) => {
                 string searchText = txtSearch.Text.ToLower();
-
                 void SearchNodes(TreeNodeCollection nodes)
                 {
                     foreach (TreeNode node in nodes)
                     {
                         bool match = false;
-
-                        // Якщо пошук не порожній, перевіряємо всі поля
-                        if (!string.IsNullOrWhiteSpace(searchText))
+                        if (!string.IsNullOrWhiteSpace(searchText) && node.Tag is GeographicObject geo)
                         {
-                            if (node.Tag is GeographicObject geo)
-                            {
-                                // Збираємо всі доступні дані об'єкта в один рядок
-                                string searchData = $"{geo.Name} {geo.Population} ";
-
-                                if (geo is Country c) searchData += $"{c.Area} {c.Capital} {c.GovernmentForm}";
-                                else if (geo is Region r) searchData += $"{r.Type} {r.Capital}";
-                                else if (geo is City city) searchData += $"{city.Coordinates}";
-
-                                // Шукаємо збіг у цьому загальному рядку
-                                match = searchData.ToLower().Contains(searchText);
-                            }
-                            else
-                            {
-                                // Запасний варіант, якщо Tag порожній (хоча такого не має бути)
-                                match = node.Text.ToLower().Contains(searchText);
-                            }
+                            string searchData = $"{geo.Name} {geo.Population} ";
+                            if (geo is Country c) searchData += $"{c.Area} {c.Capital} {c.GovernmentForm}";
+                            else if (geo is Region r) searchData += $"{r.Type} {r.Capital}";
+                            else if (geo is City city) searchData += $"{city.Coordinates}";
+                            match = searchData.ToLower().Contains(searchText);
                         }
-
-                        // Підсвічуємо
-                        node.BackColor = match ? Color.Yellow : Color.White;
+                        // При пошуку підсвічуємо синім
+                        node.BackColor = match ? accentBlue : bgPrimary;
+                        node.ForeColor = textLight;
                         if (match) node.EnsureVisible();
-
-                        // Шукаємо далі в дочірніх елементах
                         SearchNodes(node.Nodes);
                     }
                 }
-
                 treeView.BeginUpdate();
                 SearchNodes(treeView.Nodes);
                 treeView.EndUpdate();
             };
 
-            Panel leftPanel = new Panel { Dock = DockStyle.Fill };
-            leftPanel.Controls.Add(txtSearch);
+            Panel leftPanel = new Panel { Dock = DockStyle.Fill, BackColor = bgPrimary, Padding = new Padding(15) };
             leftPanel.Controls.Add(treeView);
+            leftPanel.Controls.Add(new Panel { Height = 15, Dock = DockStyle.Top, BackColor = bgPrimary });
+            leftPanel.Controls.Add(txtSearch);
             treeView.BringToFront();
 
-            detailsPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, Padding = new Padding(20) };
+            detailsPanel = new Panel { Dock = DockStyle.Fill, BackColor = bgSecondary, Padding = new Padding(40) };
 
-            TableLayoutPanel buttonPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 6, RowCount = 1, Padding = new Padding(10), BackColor = Color.FromArgb(240, 244, 248) };
+            TableLayoutPanel buttonPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 6, RowCount = 1, Padding = new Padding(10), BackColor = Color.FromArgb(25, 25, 35) };
             for (int i = 0; i < 6; i++) buttonPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 16.6F));
 
-            void StyleBtn(Button b, Color bg, Color fg) { b.FlatStyle = FlatStyle.Flat; b.FlatAppearance.BorderSize = 0; b.BackColor = bg; b.ForeColor = fg; b.Font = new Font("Segoe UI", 10, FontStyle.Bold); b.Dock = DockStyle.Fill; b.Margin = new Padding(5); b.Cursor = Cursors.Hand; }
+            void StyleBtn(Button b, Color bg, Color fg, Color hoverBg)
+            {
+                b.FlatStyle = FlatStyle.Flat;
+                b.FlatAppearance.BorderSize = 0;
+                b.BackColor = bg;
+                b.ForeColor = fg;
+                b.Font = new Font("Segoe UI", 10, FontStyle.Bold);
+                b.Dock = DockStyle.Fill;
+                b.Margin = new Padding(8);
+                b.Cursor = Cursors.Hand;
+                b.MouseEnter += (s, e) => b.BackColor = hoverBg;
+                b.MouseLeave += (s, e) => b.BackColor = bg;
+            }
 
-            btnAddContinent = new Button { Text = "Материк" }; StyleBtn(btnAddContinent, Color.LightGray, Color.Black);
-            btnAddChild = new Button { Text = "Додати" }; StyleBtn(btnAddChild, Color.LightGray, Color.Black);
-            btnDelete = new Button { Text = "Видалити" }; StyleBtn(btnDelete, Color.FromArgb(208, 56, 70), Color.White);
-            btnShowOnMap = new Button { Text = "Карта" }; StyleBtn(btnShowOnMap, Color.LightGray, Color.Black);
-            btnSave = new Button { Text = "Зберегти" }; StyleBtn(btnSave, Color.FromArgb(0, 120, 212), Color.White);
-            btnLoad = new Button { Text = "Відкрити" }; StyleBtn(btnLoad, Color.LightGray, Color.Black);
+            // Нижні кнопки у темному стилі
+            Color btnDefaultBg = Color.FromArgb(68, 71, 90);
+            Color btnDefaultHover = Color.FromArgb(98, 114, 164);
 
-            buttonPanel.Controls.Add(btnAddContinent, 0, 0); buttonPanel.Controls.Add(btnAddChild, 1, 0); buttonPanel.Controls.Add(btnDelete, 2, 0);
-            buttonPanel.Controls.Add(btnShowOnMap, 3, 0); buttonPanel.Controls.Add(btnSave, 4, 0); buttonPanel.Controls.Add(btnLoad, 5, 0);
+            btnAddContinent = new Button { Text = "Материк" };
+            StyleBtn(btnAddContinent, btnDefaultBg, textLight, btnDefaultHover);
+
+            btnAddChild = new Button { Text = "Додати" };
+            StyleBtn(btnAddChild, btnDefaultBg, textLight, btnDefaultHover);
+
+            btnDelete = new Button { Text = "Видалити" };
+            StyleBtn(btnDelete, Color.FromArgb(220, 38, 38), Color.White, Color.FromArgb(185, 28, 28)); // Неоново червоний
+
+            btnShowOnMap = new Button { Text = "Карта" };
+            StyleBtn(btnShowOnMap, btnDefaultBg, textLight, btnDefaultHover);
+
+            btnSave = new Button { Text = "Зберегти" };
+            StyleBtn(btnSave, accentBlue, Color.White, Color.FromArgb(37, 99, 235)); // Яскраво синій
+
+            btnLoad = new Button { Text = "Відкрити" };
+            StyleBtn(btnLoad, btnDefaultBg, textLight, btnDefaultHover);
+
+            buttonPanel.Controls.Add(btnAddContinent, 0, 0);
+            buttonPanel.Controls.Add(btnAddChild, 1, 0);
+            buttonPanel.Controls.Add(btnDelete, 2, 0);
+            buttonPanel.Controls.Add(btnShowOnMap, 3, 0);
+            buttonPanel.Controls.Add(btnSave, 4, 0);
+            buttonPanel.Controls.Add(btnLoad, 5, 0);
 
             mainLayout.Controls.Add(leftPanel, 0, 0);
             mainLayout.Controls.Add(detailsPanel, 1, 0);
