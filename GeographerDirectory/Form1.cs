@@ -90,18 +90,18 @@ namespace GeographerDirectory
                     Location = new Point(20, y),
                     AutoSize = true,
                     Font = new Font("Segoe UI", 20, FontStyle.Bold),
-                    ForeColor = textLight // Білий заголовок
+                    ForeColor = textLight
                 };
                 detailsPanel.Controls.Add(titleLbl);
 
-                // Роздільна лінія
                 Panel separator = new Panel { BackColor = Color.FromArgb(68, 71, 90), Location = new Point(20, y + 40), Size = new Size(350, 2) };
                 detailsPanel.Controls.Add(separator);
 
                 y += 65;
             }
 
-            void AddField(string labelText, string value, Action<string> onUpdate)
+            // Розумна функція додавання полів з ВАЛІДАЦІЄЮ
+            void AddField(string labelText, string value, Func<string, bool> onUpdate)
             {
                 Label lbl = new Label { Text = labelText, Location = new Point(20, y), AutoSize = true, Font = new Font("Segoe UI", 10, FontStyle.Bold), ForeColor = textMuted };
                 TextBox txt = new TextBox
@@ -111,21 +111,48 @@ namespace GeographerDirectory
                     Width = 350,
                     Font = new Font("Segoe UI", 12),
                     BorderStyle = BorderStyle.FixedSingle,
-                    BackColor = inputBg,      // Темний фон поля
-                    ForeColor = textLight     // Білий текст у полі
+                    BackColor = inputBg,
+                    ForeColor = textLight
                 };
+
                 txt.TextChanged += (s, e) => {
-                    onUpdate(txt.Text);
-                    if (labelText.Contains("Назва") && treeView.SelectedNode != null) treeView.SelectedNode.Text = txt.Text;
+                    // Викликаємо перевірку даних
+                    bool isValid = onUpdate(txt.Text);
+
+                    if (isValid)
+                    {
+                        txt.BackColor = inputBg; // Все добре -> стандартний фон
+                        if (labelText.Contains("Назва") && treeView.SelectedNode != null)
+                            treeView.SelectedNode.Text = txt.Text;
+                    }
+                    else
+                    {
+                        txt.BackColor = Color.FromArgb(120, 40, 40); // Помилка -> Темно-червоний фон
+                    }
                 };
+
                 detailsPanel.Controls.Add(lbl); detailsPanel.Controls.Add(txt);
                 y += 70;
             }
 
             if (obj is GeographicObject geo)
             {
-                AddField("Назва:", geo.Name, v => geo.Name = v);
-                AddField("Населення:", geo.Population.ToString(), v => { if (long.TryParse(v, out long res)) geo.Population = res; });
+                // Валідація: Назва не може бути повністю порожньою або складатися з пробілів
+                AddField("Назва:", geo.Name, v => {
+                    if (string.IsNullOrWhiteSpace(v)) return false;
+                    geo.Name = v;
+                    return true;
+                });
+
+                // Валідація: Населення має бути числом і БІЛЬШИМ АБО РІВНИМ НУЛЮ
+                AddField("Населення:", geo.Population.ToString(), v => {
+                    if (long.TryParse(v, out long res) && res >= 0)
+                    {
+                        geo.Population = res;
+                        return true;
+                    }
+                    return false;
+                });
             }
 
             if (obj is Continent continent)
@@ -136,7 +163,7 @@ namespace GeographerDirectory
                     Location = new Point(20, y + 10),
                     Size = new Size(350, 45),
                     FlatStyle = FlatStyle.Flat,
-                    BackColor = Color.FromArgb(16, 185, 129), // Смарагдовий зелений
+                    BackColor = Color.FromArgb(16, 185, 129),
                     ForeColor = Color.White,
                     Font = new Font("Segoe UI", 11, FontStyle.Bold),
                     Cursor = Cursors.Hand
@@ -155,18 +182,27 @@ namespace GeographerDirectory
             }
             else if (obj is Country c)
             {
-                AddField("Площа (кв. км):", c.Area.ToString(), v => { if (double.TryParse(v, out double res)) c.Area = res; });
-                AddField("Столиця:", c.Capital, v => c.Capital = v);
-                AddField("Форма правління:", c.GovernmentForm, v => c.GovernmentForm = v);
+                // Валідація: Площа має бути числом >= 0
+                AddField("Площа (кв. км):", c.Area.ToString(), v => {
+                    if (double.TryParse(v, out double res) && res >= 0)
+                    {
+                        c.Area = res;
+                        return true;
+                    }
+                    return false;
+                });
+
+                AddField("Столиця:", c.Capital, v => { c.Capital = v; return true; });
+                AddField("Форма правління:", c.GovernmentForm, v => { c.GovernmentForm = v; return true; });
             }
             else if (obj is Region r)
             {
-                AddField("Вид (область/штат):", r.Type, v => r.Type = v);
-                AddField("Адмін. центр:", r.Capital, v => r.Capital = v);
+                AddField("Вид (область/штат):", r.Type, v => { r.Type = v; return true; });
+                AddField("Адмін. центр:", r.Capital, v => { r.Capital = v; return true; });
             }
             else if (obj is City city)
             {
-                AddField("Координати (Широта, Довгота):", city.Coordinates, v => city.Coordinates = v);
+                AddField("Координати (Широта, Довгота):", city.Coordinates, v => { city.Coordinates = v; return true; });
             }
         }
 
